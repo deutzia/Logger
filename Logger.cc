@@ -22,6 +22,7 @@ Logger::Logger(std::ostream * _out)
 	logger_out = _out;
 	logger_level = Logger::LogLevel::Info;
 	spaces_at_the_begining = 0;
+	message_level = Logger::LogLevel::Info;
 }
 
 Logger::Logger(std::string _file)
@@ -30,6 +31,7 @@ Logger::Logger(std::string _file)
 	logger_file = _file;
 	logger_level = Logger::LogLevel::Info;
 	spaces_at_the_begining = 0;
+	message_level = Logger::LogLevel::Info;
 }
 
 void Logger::StreamWrapper::StartLogging()
