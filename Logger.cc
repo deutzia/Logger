@@ -162,13 +162,13 @@ Logger::Progress::Progress (int _start, int _end, int _step, int _number_of_upda
 Logger::Progress Logger::InitializeProgress(int _start, int _end, int _step, int _updates)
 {
 	spaces_at_the_begining += 4;
-	return Logger::Progress(_start, _end, _step, _updates, _start-1, this, this->message_level);
+	return Logger::Progress(_start, _end, _step, std::min(_updates, (_end-_start+_step-1)/_step), _start-1, this, this->message_level);
 }
 
 Logger::Progress Logger::InitializeProgress(Logger::LogLevel _level, int _start, int _end, int _step, int _updates)
 {
 	spaces_at_the_begining += 4;
-	return Logger::Progress(_start, _end, _step, _updates, _start-1, this, _level);
+	return Logger::Progress(_start, _end, _step, std::min(_updates, (_end-_start+_step-1)/_step), _start-1, this, _level);
 }
 
 void Logger::Progress::Count()
@@ -176,8 +176,16 @@ void Logger::Progress::Count()
 	if (!finished)
 	{
 		count += step;
-		if (count%((end-start)/step/number_of_updates) == 0)
-			parent -> Log() << count <<" \033[36m/\033[0m " <<end;
+		if (count%(((end-start+step-1)/step+number_of_updates-1)/number_of_updates) == 0)
+		{
+			std::string spaces;
+			for (int i = std::to_string(end).size() - std::to_string(count).size(); i > 0; --i)
+				spaces += " ";
+			if (parent -> message_level != Logger::LogLevel::Error)
+				parent -> Log() << spaces << count <<" \033[36m/\033[0m " <<end;
+			else
+				parent -> Log() << spaces << count <<" / " <<end;
+		}
 		if (count + step >= end)
 		{
 			parent->spaces_at_the_begining -= 4;
