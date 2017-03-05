@@ -16,9 +16,11 @@ std::map<Logger::LogLevel, std::string> Logger::message_headers = {
 		{LogLevel::Debug,	"\033[1m[  Debug  ]\033[0m "}
 	};
 
+std::mutex Logger::logger_is_writing;
 
 Logger::Logger(std::ostream * _out)
 {
+	writing_to_file = false;
 	logger_out = _out;
 	logger_level = Logger::LogLevel::Info;
 	spaces_at_the_begining = 0;
@@ -28,10 +30,17 @@ Logger::Logger(std::ostream * _out)
 Logger::Logger(std::string _file)
 {
 	logger_out = nullptr;
-	logger_file = _file;
+	file.open(_file, std::ios::out | std::ios::app);
+	writing_to_file = true;
 	logger_level = Logger::LogLevel::Info;
 	spaces_at_the_begining = 0;
 	message_level = Logger::LogLevel::Info;
+}
+
+Logger::~Logger()
+{
+	if (writing_to_file)
+		file.close();
 }
 
 void Logger::StreamWrapper::StartLogging()
@@ -54,39 +63,6 @@ Logger::StreamWrapper::StreamWrapper(Logger * _parent, Logger::LogLevel _level)
 {
 	parent = _parent;
 	message_level = _level;
-	if (parent->logger_out != nullptr)
-	{
-		out = parent->logger_out;
-	}
-	else
-	{
-		if (parent->logger_file != "")
-		{
-			out = nullptr;
-			file = parent->logger_file;
-		}
-		else
-			out = &std::cout;
-	}
-	s = new std::ostringstream;
-	StartLogging();
-}
-
-Logger::StreamWrapper::StreamWrapper(std::ostream * _out, Logger * _parent, Logger::LogLevel _level)
-{
-	parent = _parent;
-	message_level = _level;
-	out = _out;
-	s = new std::ostringstream;
-	StartLogging();
-}
-
-Logger::StreamWrapper::StreamWrapper(std::string _file, Logger * _parent, Logger::LogLevel _level)
-{
-	out = nullptr;
-	message_level = _level;
-	parent = _parent;
-	file = _file;
 	s = new std::ostringstream;
 	StartLogging();
 }
@@ -96,20 +72,22 @@ Logger::StreamWrapper::~StreamWrapper()
 	if (message_level == Logger::LogLevel::Error)
 		(*s) << "\033[0m";
 	(*s) << "\n";
+	// std::lock_guard<std::mutex> lock(logger_is_writing);
+	logger_is_writing.lock();
 	if (parent->logger_level >= message_level)
 	{
-		if (out == nullptr)
+		if (parent->writing_to_file)
 		{
-			std::ofstream fstr;
-			fstr.open(file, std::ios::out | std::ios::app);
-			fstr << s->str();
-			fstr.close();
+			parent->file << s->str();
+			parent->file <<std::flush;
 		}
 		else
 		{
-			(*out) << s->str();
+			(*parent->logger_out) << s->str();
+			(*parent->logger_out) << std::flush;
 		}
 	}
+	logger_is_writing.unlock();
 	delete s;
 }
 
@@ -125,29 +103,7 @@ Logger::StreamWrapper Logger::Log(Logger::LogLevel _level)
 	return l;
 }
 
-Logger::StreamWrapper Logger::Log(std::ostream * _out)
-{
-	Logger::StreamWrapper l(_out, this, this->message_level);
-	return l;
-}
 
-Logger::StreamWrapper Logger::Log(std::ostream * _out, Logger::LogLevel _level)
-{
-	Logger::StreamWrapper l(_out, this, _level);
-	return l;
-}
-
-Logger::StreamWrapper Logger::Log(std::string _file)
-{
-	Logger::StreamWrapper l(_file, this, this->message_level);
-	return l;
-}
-
-Logger::StreamWrapper Logger::Log(std::string _file, Logger::LogLevel _level)
-{
-	Logger::StreamWrapper l(_file, this, _level);
-	return l;
-}
 Logger::Progress::Progress (int _start, int _end, int _step, int _number_of_updates, int _count, Logger * _parent, Logger::LogLevel _level)
 : parent(_parent)
 , start(_start)
@@ -202,6 +158,24 @@ void Logger::SetLoggerLevel(Logger::LogLevel _level)
 void Logger::SetDefaultMessageLevel(Logger::LogLevel _level)
 {
 	message_level = _level;
+}
+
+void Logger::SetNewOutput(std::ostream * _out)
+{
+	if (writing_to_file)
+		file.close();
+	logger_out = _out;
+	writing_to_file = false;
+}
+
+void Logger::SetNewOutput(std::string _file)
+{
+	if (writing_to_file)
+		file.close();
+	else
+		logger_out = nullptr;
+	file.open(_file, std::ios::out | std::ios::app);
+	writing_to_file = true;
 }
 
 void Logger::Enter(std::string _info)
