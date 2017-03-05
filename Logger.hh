@@ -1,8 +1,3 @@
-// Warning: this library uses Return Value Optimization
-// (https://en.wikipedia.org/wiki/Return_value_optimization)
-// to work properly. Basically add -felide-constructors to
-// complier's flags.
-
 #pragma once
 
 #include <iostream>
@@ -35,6 +30,7 @@ private:
 		LogLevel message_level;
 	public:
 		StreamWrapper(Logger * _parent, LogLevel _level);
+		StreamWrapper(StreamWrapper && other);
 		template <typename Type> std::ostringstream & operator<<(Type x)
 		{
 			(*s) << x;

@@ -67,40 +67,50 @@ Logger::StreamWrapper::StreamWrapper(Logger * _parent, Logger::LogLevel _level)
 	StartLogging();
 }
 
+Logger::StreamWrapper::StreamWrapper(Logger::StreamWrapper && other)
+{
+	parent = other.parent;
+	message_level = other.message_level;
+	s = other.s;
+	other.s = nullptr;
+}
+
 Logger::StreamWrapper::~StreamWrapper()
 {
-	if (message_level == Logger::LogLevel::Error)
-		(*s) << "\033[0m";
-	(*s) << "\n";
-	// std::lock_guard<std::mutex> lock(logger_is_writing);
-	logger_is_writing.lock();
-	if (parent->logger_level >= message_level)
+	if (s != nullptr)
 	{
-		if (parent->writing_to_file)
+		if (message_level == Logger::LogLevel::Error)
+			(*s) << "\033[0m";
+		(*s) << "\n";
+		logger_is_writing.lock();
+		if (parent->logger_level >= message_level)
 		{
-			parent->file << s->str();
-			parent->file <<std::flush;
+			if (parent->writing_to_file)
+			{
+				parent->file << s->str();
+				parent->file <<std::flush;
+			}
+			else
+			{
+				(*parent->logger_out) << s->str();
+				(*parent->logger_out) << std::flush;
+			}
 		}
-		else
-		{
-			(*parent->logger_out) << s->str();
-			(*parent->logger_out) << std::flush;
-		}
+		logger_is_writing.unlock();
+		delete s;
 	}
-	logger_is_writing.unlock();
-	delete s;
 }
 
 Logger::StreamWrapper Logger::Log()
 {
 	Logger::StreamWrapper l(this, this->message_level);
-	return l;
+	return std::move(l);
 }
 
 Logger::StreamWrapper Logger::Log(Logger::LogLevel _level)
 {
 	Logger::StreamWrapper l(this, _level);
-	return l;
+	return std::move(l);
 }
 
 
