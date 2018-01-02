@@ -113,6 +113,32 @@ Logger::StreamWrapper Logger::Log(Logger::LogLevel _level)
 	return std::move(l);
 }
 
+Logger::StreamWrapper Logger::LogE()
+{
+	Logger::StreamWrapper l(this, Logger::LogLevel::Error);
+	return std::move(l);
+}
+Logger::StreamWrapper Logger::LogW()
+{
+	Logger::StreamWrapper l(this, Logger::LogLevel::Warning);
+	return std::move(l);
+}
+Logger::StreamWrapper Logger::LogI()
+{
+	Logger::StreamWrapper l(this, Logger::LogLevel::Info);
+	return std::move(l);
+}
+Logger::StreamWrapper Logger::LogV()
+{
+	Logger::StreamWrapper l(this, Logger::LogLevel::Verbose);
+	return std::move(l);
+}
+Logger::StreamWrapper Logger::LogD()
+{
+	Logger::StreamWrapper l(this, Logger::LogLevel::Debug);
+	return std::move(l);
+}
+
 
 Logger::Progress::Progress (int _start, int _end, int _step, int _number_of_updates, int _count, Logger * _parent, Logger::LogLevel _level)
 : parent(_parent)
@@ -147,10 +173,7 @@ void Logger::Progress::Count()
 			std::string spaces;
 			for (int i = std::to_string(end).size() - std::to_string(count).size(); i > 0; --i)
 				spaces += " ";
-			if (parent -> message_level != Logger::LogLevel::Error)
-				parent -> Log() << spaces << count <<" \033[36m/\033[0m " <<end;
-			else
-				parent -> Log() << spaces << count <<" / " <<end;
+			parent -> Log(message_level) << spaces << count <<" / " <<end;
 		}
 		if (count + step >= end)
 		{

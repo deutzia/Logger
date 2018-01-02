@@ -69,6 +69,11 @@ public:
 	~Logger();
 	StreamWrapper Log();
 	StreamWrapper Log(LogLevel _level);
+	StreamWrapper LogE();
+	StreamWrapper LogW();
+	StreamWrapper LogI();
+	StreamWrapper LogV();
+	StreamWrapper LogD();
 	Progress InitializeProgress(int _start, int _end, int _step = 1, int _updates = 10);
 	Progress InitializeProgress(LogLevel _level, int _start, int _end, int _step = 1, int _updates = 10);
 	void SetLoggerLevel(LogLevel _level);
